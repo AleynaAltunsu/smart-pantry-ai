@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Yerel veri (kişisel envanter/fotoğraf verisi repoya girmemeli)
+*.db
+*.sqlite
+*.sqlite3
+smart_pantry.db
+
+# Model ağırlıkları büyük; ultralytics ilk çalıştırmada kendisi indirir
+backend/models/*.pt
+backend/*.pt
+*.pt
+
+# Editör / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+.env
