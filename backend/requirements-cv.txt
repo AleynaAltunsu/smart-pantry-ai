@@ -1,0 +1,18 @@
+# Opsiyonel bağımlılık - gerçek nesne tespiti (YOLO-World) için.
+# Kurulu değilse sistem otomatik olarak klasik (OpenCV) yönteme düşer, uygulama çökmez.
+#
+# NOT: PyTorch'u da getirir (~1-2 GB). İlk çalıştırmada YOLO-World ağırlıkları (~30-60 MB, backend/models/ içine koyabilirsin) ve
+# CLIP metin kodlayıcısı (~340 MB) internetten iner. API key gerekmez.
+#
+# YOLO-World, metin kodlayıcı olarak 'clip' paketini ister. ultralytics bunu normalde
+# `git` ile kurmaya çalışır; Windows'ta git yoksa hata verir. Aşağıdaki satır aynı
+# paketi git OLMADAN kurar: wheel dosyası pakete dahildir (backend/wheels), internetten
+# ayrıca indirme gerekmez. Komutu `backend` klasöründen çalıştır.
+#
+# Kurulum:
+#   pip install -r requirements-cv.txt
+ultralytics==8.3.28
+ftfy
+regex
+tqdm
+./wheels/clip-1.0-py3-none-any.whl

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Pantry AI</title>
+<style>
+  :root{
+    --bg:#0f1512; --card:#161f1a; --accent:#5fd68c; --accent2:#3aa06a;
+    --text:#eaf2ec; --muted:#8ea395; --danger:#e0625f; --border:#26332c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text); padding-bottom:60px;
+  }
+  header{ padding:20px 16px 12px; text-align:center; }
+  header h1{margin:0; font-size:22px;}
+  header p{margin:4px 0 0; color:var(--muted); font-size:13px;}
+  .container{max-width:720px; margin:0 auto; padding:0 16px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:16px; margin-bottom:16px;
+  }
+  .card h2{margin:0 0 10px; font-size:16px;}
+  input[type=file]{display:none;}
+  .upload-btn{
+    display:block; width:100%; padding:14px; text-align:center;
+    background:var(--accent); color:#0f1512; font-weight:600;
+    border-radius:10px; cursor:pointer; border:none; font-size:15px;
+  }
+  .upload-btn:active{background:var(--accent2);}
+  .regions{display:flex; flex-direction:column; gap:14px; margin-top:14px;}
+  .region{
+    border:1px solid var(--border); border-radius:12px; padding:12px;
+    display:flex; gap:12px; align-items:flex-start; background:#101914;
+  }
+  .region img{width:88px; height:88px; object-fit:cover; border-radius:8px; flex-shrink:0;}
+  .region-body{flex:1; min-width:0;}
+  .region-body input[type=text], .region-body select, .region-body input[type=number]{
+    width:100%; padding:8px; border-radius:8px; border:1px solid var(--border);
+    background:#0c130f; color:var(--text); font-size:14px; margin-bottom:8px;
+  }
+  .qty-row, .food-quick{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
+  .chip{
+    padding:6px 10px; border-radius:999px; border:1px solid var(--border);
+    background:#0c130f; color:var(--muted); font-size:12px; cursor:pointer;
+  }
+  .chip.selected{background:var(--accent); color:#0f1512; border-color:var(--accent); font-weight:600;}
+  .confirm-btn{
+    padding:8px 14px; border-radius:8px; border:none; background:var(--accent2);
+    color:#fff; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .confirm-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .status{font-size:12px; color:var(--accent); margin-top:6px;}
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  th,td{text-align:left; padding:8px 6px; border-bottom:1px solid var(--border);}
+  th{color:var(--muted); font-weight:500; font-size:12px;}
+  .empty{color:var(--muted); font-size:13px; text-align:center; padding:20px 0;}
+  .refresh{background:none; border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; float:right;}
+  .subtitle{font-size:12px;color:var(--muted);margin-top:0;}
+  .config{font-size:11px; color:var(--muted); text-align:center; margin-top:20px;}
+  .config input{background:#0c130f; color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 6px; width:220px;}
+
+  .risk-badge{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .risk-high{background:#3a1414; color:#f28b87;}
+  .risk-medium{background:#3a3014; color:#f0c96b;}
+  .risk-low{background:#123a22; color:#7fe0a4;}
+  .risk-unknown{background:#1c2420; color:var(--muted);}
+  .risk-spoiled{background:#5a0f0f; color:#ffb3b0; border:1px solid #e0625f;}
+  .risk-high{font-weight:700;}
+  .mini-add{background:none;border:1px solid var(--accent2);color:var(--accent);border-radius:6px;font-size:11px;cursor:pointer;padding:1px 6px;margin-left:2px;}
+  .recipe-add-all{margin-top:8px;padding:5px 10px;border-radius:8px;border:none;background:var(--accent2);color:#fff;font-size:12px;cursor:pointer;font-weight:600;}
+  .reset-link{background:none;border:none;color:var(--muted);font-size:11px;text-decoration:underline;cursor:pointer;margin-top:8px;}
+  .reasons{font-size:11px; color:var(--muted); margin-top:2px;}
+  .obs-count{font-size:10px; color:var(--muted);}
+
+  .recipe-card{
+    border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px; background:#101914;
+  }
+  .recipe-card .rname{font-weight:600; font-size:14px;}
+  .recipe-card .score{float:right; color:var(--accent); font-size:12px;}
+  .recipe-card .reasons{margin-top:6px;}
+  .tag{display:inline-block; background:#0c130f; border:1px solid var(--border); border-radius:6px; padding:2px 6px; font-size:11px; margin:2px 4px 0 0; color:var(--muted);}
+  .tag.have{color:var(--accent);}
+  .tag.missing{color:var(--danger);}
+  .manual-region-btn{width:100%;margin-top:10px;padding:9px;border-radius:10px;border:1px dashed var(--accent2);background:none;color:var(--accent);font-size:13px;cursor:pointer;}
+  .no-crop{width:88px;height:88px;border-radius:8px;border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);flex-shrink:0;}
+  .cv-status{font-size:12px;margin-top:8px;padding:6px 10px;border-radius:8px;background:#0c130f;border:1px solid var(--border);color:var(--muted);}
+  .cv-status.cv-ready{color:var(--accent);border-color:var(--accent2);}
+  .cv-status.cv-loading{color:#f0c96b;}
+  .rm-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer;white-space:nowrap;}
+  .rm-choices{display:flex;flex-direction:column;gap:4px;}
+  .rm-choices button{border:1px solid var(--border);background:#0c130f;color:var(--text);border-radius:6px;font-size:11px;padding:4px 8px;cursor:pointer;text-align:left;white-space:nowrap;}
+  .rm-choices button.rm-danger{color:#f28b87;}
+  .unseen-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .unseen-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .unseen-actions button{border:1px solid var(--border);background:#0c130f;color:var(--text);border-radius:8px;font-size:12px;padding:6px 10px;cursor:pointer;}
+  .tag.listed{color:#f0c96b;border-color:#6b5a1f;}
+
+  .shop-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--border); font-size:14px; gap:8px;
+  }
+  .shop-item small{color:var(--muted); display:block; font-size:11px;}
+  .urgency-badge{font-size:10px; padding:2px 6px; border-radius:6px; background:#0c130f; color:var(--muted); white-space:nowrap;}
+  .del-btn{background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:0 4px;}
+  .manual-add-row{display:flex; gap:6px; margin-top:12px;}
+  .manual-add-row input{flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:#0c130f; color:var(--text); font-size:13px;}
+  .manual-add-row button{padding:8px 12px; border-radius:8px; border:none; background:var(--accent2); color:#fff; font-size:13px; cursor:pointer; font-weight:600;}
+
+  .qty-custom-row{display:none; gap:6px; margin-bottom:8px;}
+  .qty-custom-row.visible{display:flex;}
+  .qty-custom-row input{flex:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧊 Smart Pantry AI</h1>
+  <p>Fotoğraf → Tespit → Doğrulama → Envanter → Tarif → Alışveriş</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>1. Buzdolabını Tara</h2>
+    <label class="upload-btn" for="photoInput">📷 Fotoğraf Çek / Yükle</label>
+    <input id="photoInput" type="file" accept="image/*" capture="environment">
+    <div id="scanStatus" class="status"></div>
+    <div id="cvStatus" class="cv-status"></div>
+    <div id="regions" class="regions"></div>
+    <button class="manual-region-btn" onclick="addManualRegion()">➕ Kaçırılan ürünü elle ekle (fotoğrafsız kayıt)</button>
+  </div>
+
+  <div class="card" id="unseenCard" style="display:none">
+    <h2>❓ Bu taramada görünmeyen ürünler</h2>
+    <p class="subtitle">Önceki taramalarda vardı, bu taramada onaylamadın. Kamera bazen ürün kaçırabildiği için sormadan silmiyorum — hâlâ evde mi?</p>
+    <div id="unseenWrap"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Güncel Envanter <button class="refresh" onclick="loadAll()">Yenile</button></h2>
+    <p class="subtitle">Tüketim hızı + tahmini bitiş süresi + israf riski, birden fazla tarama sonrası hesaplanır.</p>
+    <div id="inventoryWrap"><p class="empty">Henüz veri yok — yukarıdan bir tarama yap.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Tarif Önerileri</h2>
+    <p class="subtitle">Evdeki ürünler + market listene elle eklediklerin birlikte değerlendirilir (🛒 etiketli malzemeler listeden gelir). Kuru mutfak/çeşni stoğun (zeytinyağı, kekik, sarımsak, tuz vb.) evde var kabul edilir.</p>
+    <div id="recipesWrap"><p class="empty">Envanterin oluşunca öneriler burada görünür.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>4. Alışveriş Listesi</h2>
+    <p class="subtitle">Yakında bitecek ürünler + tarif önerilerindeki eksik malzemeler. İstediğin öğeyi elle de ekleyebilirsin.</p>
+    <div id="shoppingWrap"><p class="empty">Şu an alışveriş yapmana gerek yok gibi görünüyor.</p></div>
+    <div class="manual-add-row">
+      <input id="manualItemInput" type="text" placeholder="Elle ekle (örn: ekmek)">
+      <button onclick="addManualItem()">Ekle</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. Geçmiş <button class="refresh" onclick="loadHistory()">Yenile</button></h2>
+    <p class="subtitle">Tüm taramaların tarihi ve aynı üründeki bir önceki taramaya göre gün farkı — tüketim hızı buradan hesaplanır.</p>
+    <div id="historyWrap"><p class="empty">Henüz geçmiş yok.</p></div>
+  </div>
+
+  <div class="config">
+    Backend URL: <input id="apiBase" value="http://localhost:8000">
+  </div>
+
+</div>
+
+<script>
+const QUANTITY_LEVELS = [
+  {v:"less_half", label:"½'den az"},
+  {v:"1", label:"1 porsiyon"},
+  {v:"2", label:"2 porsiyon"},
+  {v:"3plus", label:"3+ porsiyon"},
+  {v:"custom", label:"Diğer (gir)"},
+];
+const DEFAULT_QUICK_FOODS = ["yoğurt","tavuk","ıspanak","süt","peynir","domates","kalan yemek"];
+
+let learnedFoodTypes = [];   // /food-types üzerinden öğrenilen, önceden girilmiş isimler
+let activeContainers = [];   // /containers/active-summary - "hangi kaba ait" seçimi için
+
+function apiBase(){ return document.getElementById('apiBase').value.replace(/\/$/,''); }
+
+function quantityLabelFor(level){
+  if(level && level.startsWith('custom:')){
+    const v = parseFloat(level.split(':')[1]);
+    return `${v} porsiyon`;
+  }
+  return (QUANTITY_LEVELS.find(q => q.v === level) || {label: level}).label;
+}
+
+function nowLocalDatetimeValue(){
+  // datetime-local input'un beklediği "YYYY-MM-DDTHH:MM" formatı, yerel saatle
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function refreshLookups(){
+  try{
+    const [foodsRes, containersRes] = await Promise.all([
+      fetch(apiBase() + '/food-types'),
+      fetch(apiBase() + '/containers/active-summary'),
+    ]);
+    learnedFoodTypes = foodsRes.ok ? (await foodsRes.json()).map(f => f.food_type) : [];
+    activeContainers = containersRes.ok ? await containersRes.json() : [];
+  }catch(err){
+    // sessiz gec - onerilerin gelmemesi taramayi engellemesin
+  }
+}
+
+// v11: YOLO "şişe/kavanoz/meyve" gibi genel bir şey gördüğünde, kategoriye uygun hızlı seçimler önde çıkar
+const CATEGORY_CHIPS = [
+  [/İçecek|sos/i, ['süt','ayran','meyve suyu','kola','soda','ketçap','mayonez','sos','su']],
+  [/Konserve|reçel|turşu/i, ['reçel','turşu','zeytin','salça','bal','tahin']],
+  [/Hazır yemek|kalan yemek/i, ['kalan yemek','çorba','pilav','makarna','yoğurt','peynir','tavuk']],
+  [/Meyve/i, ['elma','muz','portakal','limon','kayısı','şeftali','armut','üzüm','çilek']],
+  [/Sebze/i, ['domates','salatalık','dolmalık biber','havuç','patates','soğan','ıspanak']],
+];
+function chipsForRegion(region){
+  const base = quickFoodChips();
+  let pref = [];
+  if(region.suggestion_kind === 'generic' && region.suggested_category){
+    for(const [re, list] of CATEGORY_CHIPS){ if(re.test(region.suggested_category)) pref = pref.concat(list); }
+  }
+  return [...new Set([...pref, ...base])].slice(0, 16);
+}
+
+function quickFoodChips(){
+  // once daha once girilmis (ogrenilmis) isimler, sonra varsayilan liste - tekrarsiz
+  const merged = [...learnedFoodTypes, ...DEFAULT_QUICK_FOODS];
+  return [...new Set(merged)].slice(0, 14);
+}
+
+document.getElementById('photoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('scanStatus');
+  const regionsEl = document.getElementById('regions');
+  regionsEl.innerHTML = '';
+  statusEl.textContent = 'Taranıyor...';
+
+  const lookupsPromise = refreshLookups(); // oneri/container listesi tarama ile PARALEL yuklenir (beklemeden)
+  const scanStartedAt = performance.now();
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try{
+    const res = await fetch(apiBase() + '/scan', {method:'POST', body: fd});
+    if(!res.ok) throw new Error('scan failed: ' + res.status);
+    const data = await res.json();
+    await lookupsPromise;
+    const elapsedSec = ((performance.now() - scanStartedAt) / 1000).toFixed(1);
+    let detectorLabel;
+    if(data.detector === 'yolo_world'){
+      detectorLabel = '🎯 YOLO-World (gerçek nesne tespiti)';
+    }else{
+      detectorLabel = '🔧 Klasik yöntem — ' + (data.yolo_message || 'YOLO kullanılamıyor');
+    }
+    statusEl.innerHTML = `${data.regions.length} olası nesne bölgesi bulundu — ${detectorLabel}. Her biri için doğrula: <span style="color:var(--muted)">(${elapsedSec} sn)</span>`;
+    data.regions.forEach(r => renderRegion(r));
+    await beginScanSession(data.regions.length);
+    loadCvStatus();
+  }catch(err){
+    statusEl.textContent = '⚠️ Hata: ' + err.message + ' (backend çalışıyor mu? URL doğru mu?)';
+  }
+});
+
+function renderRegion(region){
+  const el = document.createElement('div');
+  el.className = 'region';
+  el.dataset.foodType = region.suggested_food_type || '';
+  el.dataset.qty = '';
+
+  let hintBadge = '';
+  if(!region.suggested_food_type && region.suggested_label){
+    hintBadge = region.suggestion_kind === 'maybe'
+      ? `<div style="font-size:11px;color:var(--muted,#888);margin-bottom:6px;">🤔 Belki: <strong>${esc(region.suggested_label)}</strong> (düşük güven, otomatik doldurmadım)</div>`
+      : `<div style="font-size:11px;color:var(--muted,#888);margin-bottom:6px;">🔍 Model bir <strong>${esc(region.suggested_label)}</strong> görüyor${region.suggested_category ? ' ('+esc(region.suggested_category)+')' : ''} — içinde ne olduğunu görüntüden anlayamam, lütfen seç/yaz.</div>`;
+  }
+  const suggestionBadge = region.suggested_food_type
+    ? `<div style="font-size:11px;color:var(--accent);margin-bottom:6px;">
+         🤖 Tahmin: <strong>${region.suggested_food_type}</strong>
+         ${region.suggested_confidence != null ? `(%${Math.round(region.suggested_confidence*100)} güven)` : ''}
+         — yanlışsa değiştir
+       </div>`
+    : '';
+
+  const containerOptions = activeContainers.map(c =>
+    `<option value="${c.container_id}">#${c.container_id} — ${c.food_type} (${quantityLabelFor(c.latest_quantity_level)})</option>`
+  ).join('');
+
+  el.innerHTML = `
+    ${region.crop_base64 ? `<img src="data:image/jpeg;base64,${region.crop_base64}" alt="crop">` : `<div class="no-crop">elle<br>eklenen</div>`}
+    <div class="region-body">
+      ${suggestionBadge}${hintBadge}
+      <input type="text" placeholder="Ne bu? (örn: yoğurt)" class="foodInput" value="${region.suggested_food_type || ''}">
+      <div class="food-quick">
+        ${chipsForRegion(region).map(f => `<span class="chip${f===region.suggested_food_type?' selected':''}" data-food="${f}">${f}</span>`).join('')}
+      </div>
+      <div class="qty-row">
+        ${QUANTITY_LEVELS.map(q => `<span class="chip" data-qty="${q.v}">${q.label}</span>`).join('')}
+      </div>
+      <div class="qty-custom-row">
+        <input type="number" step="0.5" min="0" class="customQtyInput" placeholder="Porsiyon sayısı (örn: 5)">
+      </div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:2px;">Tarama tarihi/saati</label>
+      <input type="datetime-local" class="observedAtInput" value="${nowLocalDatetimeValue()}">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:2px;">Satın alma tarihi (opsiyonel — bozulma hesabında kullanılır)</label>
+      <input type="date" class="purchasedAtInput">
+      <select class="containerSelect">
+        <option value="auto">📦 Otomatik eşleştir (aynı üründen varsa)</option>
+        <option value="new">🆕 Yeni kap</option>
+        ${containerOptions}
+      </select>
+      <button class="confirm-btn" disabled>Onayla ve Kaydet</button>
+      <div class="region-status status"></div>
+    </div>
+  `;
+
+  const foodInput = el.querySelector('.foodInput');
+  const confirmBtn = el.querySelector('.confirm-btn');
+  const regionStatus = el.querySelector('.region-status');
+  const customRow = el.querySelector('.qty-custom-row');
+  const customInput = el.querySelector('.customQtyInput');
+
+  el.querySelectorAll('[data-food]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      el.querySelectorAll('[data-food]').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      foodInput.value = chip.dataset.food;
+      el.dataset.foodType = chip.dataset.food;
+      checkReady();
+    });
+  });
+  foodInput.addEventListener('input', () => {
+    el.dataset.foodType = foodInput.value.trim();
+    el.querySelectorAll('[data-food]').forEach(c => c.classList.remove('selected'));
+    checkReady();
+  });
+
+  el.querySelectorAll('[data-qty]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      el.querySelectorAll('[data-qty]').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      if(chip.dataset.qty === 'custom'){
+        customRow.classList.add('visible');
+        el.dataset.qty = customInput.value ? `custom:${customInput.value}` : '';
+      }else{
+        customRow.classList.remove('visible');
+        el.dataset.qty = chip.dataset.qty;
+      }
+      checkReady();
+    });
+  });
+  customInput.addEventListener('input', () => {
+    if(customInput.value){
+      el.dataset.qty = `custom:${customInput.value}`;
+    }
+    checkReady();
+  });
+
+  function checkReady(){
+    confirmBtn.disabled = !(el.dataset.foodType && el.dataset.qty);
+  }
+
+  confirmBtn.addEventListener('click', async () => {
+    confirmBtn.disabled = true;
+    regionStatus.textContent = 'Kaydediliyor...';
+
+    const containerChoice = el.querySelector('.containerSelect').value;
+    const payload = {
+      food_type: el.dataset.foodType,
+      quantity_level: el.dataset.qty.startsWith('custom:') ? 'custom' : el.dataset.qty,
+    };
+    if(el.dataset.qty.startsWith('custom:')){
+      payload.custom_quantity_value = parseFloat(el.dataset.qty.split(':')[1]);
+    }
+    if(containerChoice === 'new'){
+      payload.force_new_container = true;
+    }else if(containerChoice !== 'auto'){
+      payload.container_id = parseInt(containerChoice, 10);
+    }
+    // containerChoice === 'auto' -> hicbir sey gonderme, backend food_type'a gore otomatik eslestirir
+
+    const purchasedAtValue = el.querySelector('.purchasedAtInput').value;
+    if(purchasedAtValue){
+      payload.purchased_at = purchasedAtValue + 'T09:00:00';
+    }
+    payload.entry_source = String(region.region_id).startsWith('manual-') ? 'manual' : 'scan';
+    const observedAtValue = el.querySelector('.observedAtInput').value;
+    if(observedAtValue){
+      payload.observed_at = observedAtValue; // "YYYY-MM-DDTHH:MM" - backend bunu direkt anliyor
+    }
+
+    try{
+      const res = await fetch(apiBase() + '/confirm', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok) throw new Error('confirm failed: ' + res.status);
+      regionStatus.textContent = '✅ Kaydedildi';
+      markSeen(el.dataset.foodType);
+      loadAll();
+    }catch(err){
+      regionStatus.textContent = '⚠️ ' + err.message;
+      confirmBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('regions').appendChild(el);
+}
+
+function riskLabel(risk){
+  return {high:"Yüksek risk", medium:"Orta risk", low:"Düşük risk", unknown:"Veri yetersiz"}[risk] || risk;
+}
+
+const loadSeq = {inventory: 0, recipes: 0, shopping: 0, history: 0};
+
+async function loadInventory(){
+  const seq = ++loadSeq.inventory;
+  const wrap = document.getElementById('inventoryWrap');
+  try{
+    const res = await fetch(apiBase() + '/inventory');
+    const items = await res.json();
+    if(seq !== loadSeq.inventory) return; // daha yeni bir yenileme başladı, bu yanıt eskidi
+    if(items.length === 0){
+      wrap.innerHTML = '<p class="empty">Envanter boş.</p>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <tr><th>Yiyecek</th><th>Miktar</th><th>Tahmin</th><th>Risk</th><th></th></tr>
+        ${items.map(it => `
+          <tr>
+            <td>${it.food_type}<div class="obs-count">${it.observation_count} tarama${it.entry_source === 'manual' ? ' · ✍️ elle eklendi' : ''}</div></td>
+            <td>${quantityLabelFor(it.latest_quantity_level)}</td>
+            <td>${it.estimated_days_remaining != null ? '~' + it.estimated_days_remaining + ' gün' : '—'}</td>
+            <td>
+              <span class="risk-badge risk-${it.waste_risk}">${it.risk_label || riskLabel(it.waste_risk)}</span>
+              <div class="reasons">${it.waste_reasons.join(' ')}</div>
+            </td>
+            <td class="rm-cell"><div id="rm-${it.food_instance_id}"><button class="rm-btn" onclick="showRemoveOptions(${it.food_instance_id})">Çıkar</button></div></td>
+          </tr>
+        `).join('')}
+      </table>
+    `;
+  }catch(err){
+    wrap.innerHTML = `<p class="empty">⚠️ Envanter alınamadı: ${err.message}</p>`;
+  }
+}
+
+async function loadRecipes(){
+  const seq = ++loadSeq.recipes;
+  const wrap = document.getElementById('recipesWrap');
+  try{
+    const res = await fetch(apiBase() + '/recipes/recommendations');
+    const recipes = await res.json();
+    if(seq !== loadSeq.recipes) return; // daha yeni bir yenileme başladı, bu yanıt eskidi
+    if(recipes.length === 0){
+      wrap.innerHTML = '<p class="empty">Şu an eldeki malzemelerle eşleşen bir tarif yok.</p>';
+      return;
+    }
+    wrap.innerHTML = recipes.map(r => `
+      <div class="recipe-card">
+        <span class="rname">${r.name}</span>
+        <span class="score">${r.source === 'llm' ? '🧠 LLM' : '📋 kural'} · skor: ${r.score}</span>
+        <div>
+          ${r.matched_ingredients.map(i => (r.from_shopping_list || []).includes(i) ? `<span class="tag listed">🛒 ${i} (listede)</span>` : `<span class="tag have">✓ ${i}</span>`).join('')}
+          ${r.missing_ingredients.map(i => `<span class="tag missing">✗ ${i}<button class="mini-add" onclick="addMissingToList('${i.replace(/'/g,"\\'")}', '${r.name.replace(/'/g,"\\'")}')">+ listeye</button></span>`).join('')}
+          ${(r.also_needed||[]).map(i => `<span class="tag missing" style="opacity:.75">＋ ${i} <small>(tamamlar)</small><button class="mini-add" onclick="addMissingToList('${i.replace(/'/g,"\\'")}', '${r.name.replace(/'/g,"\\'")}')">+ listeye</button></span>`).join('')}
+        </div>
+        <div class="reasons">${r.reasons.join(' ')}</div>
+        ${r.missing_ingredients.length > 1 ? `<button class="recipe-add-all" onclick='addAllMissing(${JSON.stringify(r.missing_ingredients)}, ${JSON.stringify(r.name)})'>Tüm eksikleri listeye ekle (${r.missing_ingredients.length})</button>` : ''}
+      </div>
+    `).join('');
+  }catch(err){
+    wrap.innerHTML = `<p class="empty">⚠️ Tarifler alınamadı: ${err.message}</p>`;
+  }
+}
+
+async function loadShoppingList(){
+  const seq = ++loadSeq.shopping;
+  const wrap = document.getElementById('shoppingWrap');
+  try{
+    const res = await fetch(apiBase() + '/shopping-list');
+    const items = await res.json();
+    if(seq !== loadSeq.shopping) return; // daha yeni bir yenileme başladı, bu yanıt eskidi
+    if(items.length === 0){
+      wrap.innerHTML = '<p class="empty">Şu an alışveriş yapmana gerek yok gibi görünüyor.</p>';
+      return;
+    }
+    const urgencyLabel = u => ({runs_out_soon:'Bitiyor', needed_for_recipe:'Tarif için', manual:'Elle eklendi'}[u] || u);
+    wrap.innerHTML = items.map(it => `
+      <div class="shop-item">
+        <div>
+          <strong>${it.food_type}</strong>
+          <small>${it.reason}</small>
+        </div>
+        <span class="urgency-badge">${urgencyLabel(it.urgency)}</span>
+        ${it.source === 'manual'
+          ? `<button class="del-btn" title="Listeden çıkar" onclick="deleteManualItem(${it.id})">✕</button>`
+          : `<button class="del-btn" title="Listeden çıkar" onclick='dismissAutoItem(${JSON.stringify(it.food_type)})'>✕</button>`}
+      </div>
+    `).join('') + `<button class="reset-link" onclick="resetDismissed()">Gizlediklerimi geri getir</button>`;
+  }catch(err){
+    wrap.innerHTML = `<p class="empty">⚠️ Alışveriş listesi alınamadı: ${err.message}</p>`;
+  }
+}
+
+async function addManualItem(){
+  const input = document.getElementById('manualItemInput');
+  const foodType = input.value.trim();
+  if(!foodType) return;
+  try{
+    const res = await fetch(apiBase() + '/shopping-list/manual', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({food_type: foodType}),
+    });
+    if(!res.ok) throw new Error('ekleme başarısız: ' + res.status);
+    input.value = '';
+    refreshListAndRecipes();
+  }catch(err){
+    alert('⚠️ ' + err.message);
+  }
+}
+
+function refreshListAndRecipes(){
+  loadAll();
+}
+
+async function addMissingToList(foodType, recipeName){
+  try{
+    await fetch(apiBase() + '/shopping-list/manual', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({food_type: foodType, note: `'${recipeName}' tarifi için`}),
+    });
+    refreshListAndRecipes();
+  }catch(err){ alert('⚠️ ' + err.message); }
+}
+
+async function addAllMissing(list, recipeName){
+  for(const item of list){ await addMissingToList(item, recipeName); }
+}
+
+async function dismissAutoItem(foodType){
+  try{
+    await fetch(apiBase() + '/shopping-list/dismiss', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({food_type: foodType}),
+    });
+    loadShoppingList();
+  }catch(err){ alert('⚠️ ' + err.message); }
+}
+
+async function resetDismissed(){
+  await fetch(apiBase() + '/shopping-list/dismissed', {method: 'DELETE'});
+  loadShoppingList();
+}
+
+async function deleteManualItem(id){
+  try{
+    await fetch(apiBase() + `/shopping-list/manual/${id}`, {method: 'DELETE'});
+    refreshListAndRecipes();
+  }catch(err){
+    alert('⚠️ ' + err.message);
+  }
+}
+
+async function loadHistory(){
+  const seq = ++loadSeq.history;
+  const wrap = document.getElementById('historyWrap');
+  try{
+    const res = await fetch(apiBase() + '/history');
+    const items = await res.json();
+    if(seq !== loadSeq.history) return; // daha yeni bir yenileme başladı, bu yanıt eskidi
+    if(items.length === 0){
+      wrap.innerHTML = '<p class="empty">Henüz geçmiş yok.</p>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table>
+        <tr><th>Tarih</th><th>Ürün</th><th>Önceki miktar</th><th>Miktar</th><th>Geçen süre</th><th>Tüketim hızı</th></tr>
+        ${items.map(it => `
+          <tr>
+            <td>${new Date(it.observed_at).toLocaleString('tr-TR')}</td>
+            <td>${it.food_type} <span class="obs-count">#${it.container_id}</span></td>
+            <td>${it.previous_quantity_level ? quantityLabelFor(it.previous_quantity_level) : '—'}</td>
+            <td><strong>${quantityLabelFor(it.quantity_level)}</strong></td>
+            <td>${it.days_since_previous != null ? it.days_since_previous + ' gün' : '—'}</td>
+            <td title="${esc(it.rate_note || '')}">${it.consumption_rate_per_day != null
+                ? '<strong>'+it.consumption_rate_per_day+'</strong> porsiyon/gün'
+                : '<span class="obs-count">— <small>'+esc(it.rate_note || '')+'</small></span>'}</td>
+          </tr>
+        `).join('')}
+      </table>
+    `;
+  }catch(err){
+    wrap.innerHTML = `<p class="empty">⚠️ Geçmiş alınamadı: ${err.message}</p>`;
+  }
+}
+
+let refreshTimer = null;
+function loadAll(){
+  // Her ürün eklendiğinde/silindiğinde/onaylandığında tüm zincir (envanter → tarif →
+  // alışveriş → geçmiş) yeniden hesaplanır. Peş peşe gelen çağrılar tek yenilemede birleşir.
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    await refreshLookups();
+    loadInventory();
+    loadRecipes();
+    loadShoppingList();
+    loadHistory();
+  }, 250);
+}
+
+async function addManualRegion(){
+  await refreshLookups();
+  renderRegion({region_id: 'manual-' + Date.now(), bbox: [0,0,0,0], crop_base64: '',
+                suggested_food_type: null, suggested_confidence: null});
+}
+
+// ===================== v10: envanterden çıkarma =====================
+function esc(v){ return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function showRemoveOptions(id){
+  const box = document.getElementById('rm-' + id);
+  if(!box) return;
+  box.innerHTML = `
+    <div class="rm-choices">
+      <button onclick="removeItem(${id}, 'consumed')">✓ Tükettim</button>
+      <button onclick="removeItem(${id}, 'discarded')">🗑 Attım / bozuldu</button>
+      <button class="rm-danger" onclick="removeItem(${id}, 'mistake')">✕ Yanlış kayıt (sil)</button>
+      <button onclick="loadInventory()">Vazgeç</button>
+    </div>`;
+}
+
+async function removeItem(id, reason){
+  if(reason === 'mistake' && !confirm('Bu kayıt geçmişten de tamamen silinecek. Emin misin?')) return;
+  try{
+    const res = await fetch(apiBase() + `/inventory/${id}/remove`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({reason: reason, removed_at: nowLocalDatetimeValue() + ':00'}),
+    });
+    if(!res.ok) throw new Error('çıkarma başarısız: ' + res.status);
+    scanSession.items = scanSession.items.filter(it => it.food_instance_id !== id);
+    renderUnseenCard();
+    loadAll();
+  }catch(err){ alert('⚠️ ' + err.message); }
+}
+
+// ===================== v10: "bu taramada görünmeyen ürünler" =====================
+// Önceki taramada olan ama bu taramada onaylanmayan (ve elle eklenmemiş) ürünler için
+// kullanıcıya sorulur. Kamera ürün kaçırabildiği için hiçbir şey OTOMATİK silinmez.
+let scanSession = {active: false, items: [], seen: new Set(), dismissed: new Set()};
+
+function normFood(s){ return String(s || '').trim().toLocaleLowerCase('tr'); }
+
+function computeUnseenItems(items, seen, dismissed){
+  return items.filter(it => !seen.has(normFood(it.food_type)) && !dismissed.has(it.food_instance_id));
+}
+
+async function beginScanSession(regionCount){
+  scanSession = {active: false, items: [], seen: new Set(), dismissed: new Set()};
+  if(regionCount > 0){   // hiçbir şey bulunamadıysa "hepsi görünmedi" demek yanıltıcı olur
+    try{
+      const res = await fetch(apiBase() + '/inventory');
+      const items = await res.json();
+      scanSession.items = items.filter(it => it.entry_source !== 'manual');
+      scanSession.active = true;
+    }catch(err){ /* sessiz geç */ }
+  }
+  renderUnseenCard();
+}
+
+function markSeen(foodType){
+  if(!scanSession.active) return;
+  scanSession.seen.add(normFood(foodType));
+  renderUnseenCard();
+}
+
+function renderUnseenCard(){
+  const card = document.getElementById('unseenCard');
+  const wrap = document.getElementById('unseenWrap');
+  const list = scanSession.active ? computeUnseenItems(scanSession.items, scanSession.seen, scanSession.dismissed) : [];
+  if(list.length === 0){ card.style.display = 'none'; wrap.innerHTML = ''; return; }
+  card.style.display = '';
+  wrap.innerHTML = list.map(it => `
+    <div class="unseen-row" id="unseen-${it.food_instance_id}">
+      <div><strong>${esc(it.food_type)}</strong>
+        <div class="obs-count">son: ${esc(quantityLabelFor(it.latest_quantity_level))} · ${esc(new Date(it.last_observed_at).toLocaleDateString('tr-TR'))}</div></div>
+      <div class="unseen-actions">
+        <button onclick="unseenAction(${it.food_instance_id}, 'consumed')">✓ Tükettim</button>
+        <button onclick="unseenAction(${it.food_instance_id}, 'discarded')">🗑 Attım</button>
+        <button onclick="unseenAction(${it.food_instance_id}, 'still')">👀 Hâlâ var</button>
+      </div>
+    </div>`).join('');
+}
+
+async function unseenAction(id, action){
+  if(action === 'still'){
+    scanSession.dismissed.add(id);   // sadece bu oturumda sorma; envanter değişmez
+    renderUnseenCard();
+    return;
+  }
+  await removeItem(id, action);
+}
+
+// ===================== v10: dedektör durumu =====================
+let cvPollTimer = null;
+async function loadCvStatus(){
+  clearTimeout(cvPollTimer);
+  const el = document.getElementById('cvStatus');
+  try{
+    const res = await fetch(apiBase() + '/cv/status');
+    const s = await res.json();
+    const icon = s.status === 'ready' ? '🎯' : (s.status === 'loading' ? '⏳' : '🔧');
+    el.textContent = `${icon} Dedektör: ${s.message}`;
+    el.className = 'cv-status cv-' + s.status;
+    if(s.status === 'loading') cvPollTimer = setTimeout(loadCvStatus, 4000);  // hazır olana kadar yokla
+  }catch(err){ el.textContent = ''; }
+}
+
+refreshLookups();
+loadAll();
+loadCvStatus();
+</script>
+</body>
+</html>
